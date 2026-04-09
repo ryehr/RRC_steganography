@@ -1,32 +1,3 @@
-#!/usr/bin/env python3
-"""
-Rotation Range-Coding (RRC) Steganography — Extraction (Algorithm 4)
-
-This module implements the extraction procedure described in Algorithm 4 of:
-  "Efficient Provably Secure Linguistic Steganography via Range Coding"
-  (Yan & Murawaki, 2025)
-
-Given a steganographic text t_s, a language model M, and the shared symmetric
-key K, the decoder recovers the original secret bit-string m_s.
-
-The extraction has two phases:
-  Phase 1 (Forward pass, Lines 5-11):
-      Iterate through each generated token, narrow [L, R) using the known
-      tokens, and record L, Delta, and PRNG offsets at each step.
-  Phase 2 (Reverse rotation, Lines 12-15):
-      Starting from mid^{t_end}, reverse-rotate back to recover d_s^{-1}.
-
-Usage:
-    python decode_range_kvcache.py \\
-        --language_model meta-llama/Llama-3.1-8B \\
-        --bit_length 128 \\
-        --key 42 \\
-        --input_file 1.RC_decimal_Llama-3.1-8B_bit128.tsv
-
-Requires:
-    - An input TSV produced by ``encode_range_kvcache.py`` with at least
-      ``Idx``, ``Context``, and ``Text`` columns.
-"""
 
 import argparse
 import csv
@@ -67,6 +38,10 @@ def interval_narrow(probs: torch.Tensor, L: Decimal, R: Decimal,
                     token_index: int):
     """Narrow [L, R) to the sub-interval corresponding to *token_index*.
 
+    Uses torch.cumsum on **CPU float64** for deterministic boundary
+    computation across devices (CUDA cumsum can introduce rounding
+    differences that break the encode/decode round-trip).
+
     Parameters
     ----------
     probs : Tensor
@@ -81,10 +56,11 @@ def interval_narrow(probs: torch.Tensor, L: Decimal, R: Decimal,
     L_new, R_new : Decimal
         Narrowed interval.
     """
-    cumulative = torch.cumsum(probs, dim=0)
+    probs_cpu = probs.cpu().to(torch.float64)
+    cumulative = torch.cumsum(probs_cpu, dim=0)
     cumulative = cumulative / cumulative[-1]
-    boundaries = torch.cat([torch.zeros(1, device=probs.device), cumulative])
-    boundaries_np = boundaries.cpu().numpy()
+    boundaries = torch.cat([torch.zeros(1, dtype=torch.float64), cumulative])
+    boundaries_np = boundaries.numpy()
 
     Delta = R - L
     i = token_index
@@ -159,7 +135,7 @@ def decode(idx, context_tokens, stegotext_tokens, topk, prng,
 
     # --- t = 0 ------------------------------------------------------------
     logits_sorted, indices = (outputs.logits[0, -1, :]
-                              .to(torch.float64).sort(descending=True))
+                              .to(torch.float64).sort(descending=True, stable=True))
     probs = F.softmax(logits_sorted, dim=-1)
 
     L_history.append(L)
@@ -196,7 +172,7 @@ def decode(idx, context_tokens, stegotext_tokens, topk, prng,
         cached_len += 1
 
         logits_sorted, indices = (outputs.logits[0, -1, :]
-                                  .to(torch.float64).sort(descending=True))
+                                  .to(torch.float64).sort(descending=True, stable=True))
         probs = F.softmax(logits_sorted, dim=-1)
 
         L_history.append(L)
