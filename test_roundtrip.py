@@ -11,7 +11,7 @@ and decode logic so it can run independently of the main pipeline files.
 Usage:
     python test_roundtrip.py
 
-By default the test uses ``openai-community/gpt2`` (locally cached, small).
+By default the test uses ``meta-llama/Llama-2-7b-hf``.
 The algorithm is model-agnostic — correctness depends only on both sides
 using the *same* model and key.
 """
@@ -28,7 +28,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-MODEL_NAME = "openai-community/gpt2"   # use a small model for fast CI
+MODEL_NAME = "meta-llama/Llama-2-7b-hf"   # use a small model for fast CI
 BIT_LENGTH = 128
 KEY = 42
 TOP_K = -1                              # -1 → full vocabulary
