@@ -48,7 +48,7 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-### 1. Verify correctness (no GPU needed)
+### 1. Verify correctness
 
 The round-trip test uses GPT-2 (small, auto-downloaded) and runs on CPU/MPS/CUDA:
 
