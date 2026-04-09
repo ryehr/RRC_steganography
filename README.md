@@ -4,13 +4,6 @@
 
 > **Paper**: *Efficient Provably Secure Linguistic Steganography via Range Coding*
 
-## Highlights
-
-- **Provably secure**: zero KL divergence at every generation step — the stegotext distribution is *identical* to normal LM output.
-- **Near-100% entropy utilization**: embeds information at the theoretical capacity limit.
-- **Fast**: up to 1554.66 bits/s on GPT-2 (128-bit message).
-- **Training-free & model-agnostic**: works as a plug-and-play layer on any autoregressive LM.
-- **Scalable**: tested from 32-bit to 8192-bit messages.
 
 ## How It Works
 
