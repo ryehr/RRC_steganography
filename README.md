@@ -121,4 +121,5 @@ Python's `Decimal` type uses *truncated* division for the `%` operator, which ca
 def decimal_mod(a, m):
     return a - m * (a / m).to_integral_value(rounding=ROUND_FLOOR)
 ```
+⚠️ For reliable secret extraction, some operations (sort, cumsum) are offloaded to CPU at float64 precision to avoid CUDA non-determinism. This trades a small amount of speed for guaranteed encode–decode consistency.
 
