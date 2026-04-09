@@ -43,7 +43,7 @@ pip install -r requirements.txt
 
 ### 1. Verify correctness
 
-The round-trip test uses GPT-2 (small, auto-downloaded) and runs on CPU/MPS/CUDA:
+The round-trip test uses meta-llama/Llama-2-7b-hf and runs on CPU/CUDA:
 
 ```bash
 python test_roundtrip.py
