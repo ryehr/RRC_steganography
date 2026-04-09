@@ -27,8 +27,8 @@ The rotation mechanism solves two issues of vanilla range-coding steganography:
 
 ```
 .
-├── encode_range_kvcache.py   # Embedding (Algorithm 3) with KV-cache acceleration
-├── decode_range_kvcache.py   # Extraction (Algorithm 4) with KV-cache acceleration
+├── RRC_embed.py   # Embedding (Algorithm 3) 
+├── RRC_extract.py   # Extraction (Algorithm 4) 
 ├── test_roundtrip.py         # Self-contained end-to-end verification script
 ├── requirements.txt          # Python dependencies
 └── README.md
@@ -71,7 +71,7 @@ Expected output:
 Prepare a prompts file `0.Prompts.tsv` with columns `idx` and `text`, then run:
 
 ```bash
-python encode_range_kvcache.py \
+python RRC_embed.py \
     --language_model meta-llama/Llama-3.1-8B \
     --bit_length 128 \
     --key 42 \
@@ -82,7 +82,7 @@ python encode_range_kvcache.py \
 ### 3. Extract the secret message
 
 ```bash
-python decode_range_kvcache.py \
+python RRC_extract.py \
     --language_model meta-llama/Llama-3.1-8B \
     --bit_length 128 \
     --key 42 \
@@ -93,7 +93,7 @@ python decode_range_kvcache.py \
 
 ## CLI Arguments
 
-### `encode_range_kvcache.py`
+### `RRC_embed.py`
 
 | Argument | Default | Description |
 |----------|---------|-------------|
@@ -103,7 +103,7 @@ python decode_range_kvcache.py \
 | `--key` | `42` | Symmetric key K (PRNG seed) |
 | `--part` / `--part_max` | `0` / `2` | For parallel execution on large prompt sets |
 
-### `decode_range_kvcache.py`
+### `RRC_extract.py`
 
 | Argument | Default | Description |
 |----------|---------|-------------|
