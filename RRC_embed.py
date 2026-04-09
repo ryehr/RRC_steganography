@@ -1,27 +1,3 @@
-#!/usr/bin/env python3
-"""
-Rotation Range-Coding (RRC) Steganography — Embedding (Algorithm 3)
-
-This module implements the embedding procedure described in Algorithm 3 of:
-  "Efficient Provably Secure Linguistic Steganography via Range Coding"
-  (Yan & Murawaki, 2025)
-
-Given a secret bit-string m_s, a language model M, and a shared symmetric key K,
-the encoder produces a steganographic text t_s that is statistically
-indistinguishable from normal LM output while embedding m_s at near-100%
-entropy utilization.
-
-Usage:
-    python encode_range_kvcache.py \\
-        --language_model meta-llama/Llama-3.1-8B \\
-        --bit_length 128 \\
-        --key 42 \\
-        [--top_k -1] [--part 0] [--part_max 2]
-
-Requires:
-    - A prompts file  ``0.Prompts.tsv``  with columns ``idx`` and ``text``.
-    - Output is written to a TSV whose name encodes the model and bit length.
-"""
 
 import argparse
 import csv
@@ -63,6 +39,10 @@ def interval_select(probs: torch.Tensor, L: Decimal, R: Decimal,
                     d_s: Decimal):
     """Narrow [L, R) to the sub-interval that contains *d_s*.
 
+    Uses torch.cumsum on **CPU float64** for deterministic boundary
+    computation across devices (CUDA sort/cumsum can introduce
+    non-deterministic tie-breaking and rounding).
+
     Parameters
     ----------
     probs : Tensor
@@ -79,10 +59,11 @@ def interval_select(probs: torch.Tensor, L: Decimal, R: Decimal,
     L_new, R_new : Decimal
         Updated interval bounds after selection.
     """
-    cumulative = torch.cumsum(probs, dim=0)
+    probs_cpu = probs.cpu().to(torch.float64)
+    cumulative = torch.cumsum(probs_cpu, dim=0)
     cumulative = cumulative / cumulative[-1]          # normalise
-    boundaries = torch.cat([torch.zeros(1, device=probs.device), cumulative])
-    boundaries_np = boundaries.cpu().numpy()
+    boundaries = torch.cat([torch.zeros(1, dtype=torch.float64), cumulative])
+    boundaries_np = boundaries.numpy()
 
     Delta = R - L
 
@@ -90,8 +71,7 @@ def interval_select(probs: torch.Tensor, L: Decimal, R: Decimal,
         upper = L + Decimal(str(boundaries_np[i + 1])) * Delta
         if upper > d_s:
             L_new = L + Decimal(str(boundaries_np[i])) * Delta
-            R_new = upper
-            return i, L_new, R_new
+            return i, L_new, upper
 
     raise RuntimeError("d_s not covered by any sub-interval (should not happen)")
 
@@ -155,7 +135,7 @@ def encode(idx, context_text, context_tokens, topk, prng,
 
     # ---- t = 0  (first token from prefill logits) ------------------------
     logits_sorted, indices = (outputs.logits[0, -1, :]
-                              .to(torch.float64).sort(descending=True))
+                              .to(torch.float64).sort(descending=True, stable=True))
     probs = F.softmax(logits_sorted, dim=-1)
     entropy_total += -torch.sum(probs * torch.log2(probs + 1e-10))
 
@@ -199,7 +179,7 @@ def encode(idx, context_text, context_tokens, topk, prng,
         cached_len += 1
 
         logits_sorted, indices = (outputs.logits[0, -1, :]
-                                  .to(torch.float64).sort(descending=True))
+                                  .to(torch.float64).sort(descending=True, stable=True))
         probs = F.softmax(logits_sorted, dim=-1)
         entropy_total += -torch.sum(probs * torch.log2(probs + 1e-10))
 
